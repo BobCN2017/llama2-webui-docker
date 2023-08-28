@@ -21,28 +21,14 @@ RUN cp -ar /src /app
 # Install oobabooga/text-generation-webui
 RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r /app/requirements.txt
 
-# Install extensions
-COPY ./scripts/build_extensions.sh /scripts/build_extensions.sh
-RUN --mount=type=cache,target=/root/.cache/pip \
-    chmod +x /scripts/build_extensions.sh && . /scripts/build_extensions.sh
-# Clone default GPTQ
-RUN git clone https://github.com/oobabooga/GPTQ-for-LLaMa.git -b cuda /app/repositories/GPTQ-for-LLaMa
-# Build and install default GPTQ ('quant_cuda')
-ARG TORCH_CUDA_ARCH_LIST="6.1;7.0;7.5;8.0;8.6+PTX"
-RUN cd /app/repositories/GPTQ-for-LLaMa/ && python3 setup_cuda.py install
+# download models
+RUN python /app/llama2_wrapper/download/__main__.py\
+    --repo_id TheBloke/Llama-2-7B-Chat-GGML --filename llama-2-7b-chat.ggmlv3.q4_0.bin --save_dir /app/default_models
+RUN  python /app/llama2_wrapper/download/__main__.py --repo_id TheBloke/Llama-2-7B-Chat-GPTQ --save_dir /app/default_models 
 
-FROM nvidia/cuda:11.8.0-devel-ubuntu22.04 AS base
-# Runtime pre-reqs
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    python3-venv python3-dev git
-# Copy app and src
-COPY --from=app_base /app /app
-COPY --from=app_base /src /src
-# Copy and activate venv
-COPY --from=app_base /venv /venv
-ENV VIRTUAL_ENV=/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+RUN apt-get update && apt-get install -y rsync
+
+FROM app_base as base
 # Finalise app setup
 WORKDIR /app
 EXPOSE 7860
@@ -54,55 +40,19 @@ ENV PYTHONUNBUFFERED=1
 ARG BUILD_DATE
 ENV BUILD_DATE=$BUILD_DATE
 RUN echo "$BUILD_DATE" > /build_date.txt
+
+
 # Copy and enable all scripts
 COPY ./scripts /scripts
 RUN chmod +x /scripts/*
+RUN cd /src
+RUN git pull
+RUN cp -ar /src /app
+
 # Run
 ENTRYPOINT ["/scripts/docker-entrypoint.sh"]
 
-
-# VARIANT BUILDS
-FROM base AS cuda
-RUN echo "CUDA" >> /variant.txt
-RUN apt-get install --no-install-recommends -y git python3-dev python3-pip
-RUN rm -rf /app/repositories/GPTQ-for-LLaMa && \
-    git clone https://github.com/qwopqwop200/GPTQ-for-LLaMa -b cuda /app/repositories/GPTQ-for-LLaMa
-RUN pip3 uninstall -y quant-cuda && \
-    sed -i 's/^safetensors==0\.3\.0$/safetensors/g' /app/repositories/GPTQ-for-LLaMa/requirements.txt && \
-    pip3 install -r /app/repositories/GPTQ-for-LLaMa/requirements.txt
-ENV EXTRA_LAUNCH_ARGS=""
-CMD ["python3", "/app/server.py"]
-
-FROM base AS triton
-RUN echo "TRITON" >> /variant.txt
-RUN apt-get install --no-install-recommends -y git python3-dev build-essential python3-pip
-RUN rm -rf /app/repositories/GPTQ-for-LLaMa && \
-    git clone https://github.com/qwopqwop200/GPTQ-for-LLaMa -b triton /app/repositories/GPTQ-for-LLaMa
-RUN pip3 uninstall -y quant-cuda && \
-    sed -i 's/^safetensors==0\.3\.0$/safetensors/g' /app/repositories/GPTQ-for-LLaMa/requirements.txt && \
-    pip3 install -r /app/repositories/GPTQ-for-LLaMa/requirements.txt
-ENV EXTRA_LAUNCH_ARGS=""
-CMD ["python3", "/app/server.py"]
-
-FROM base AS llama-cublas
-RUN echo "LLAMA-CUBLAS" >> /variant.txt
-RUN apt-get install --no-install-recommends -y git python3-dev build-essential python3-pip
-ENV LLAMA_CUBLAS=1
-RUN pip uninstall -y llama-cpp-python && pip install llama-cpp-python
-ENV EXTRA_LAUNCH_ARGS=""
-CMD ["python3", "/app/server.py"]
-
-FROM base AS monkey-patch
-RUN echo "4-BIT MONKEY-PATCH" >> /variant.txt
-RUN apt-get install --no-install-recommends -y git python3-dev build-essential python3-pip
-RUN git clone https://github.com/johnsmith0031/alpaca_lora_4bit /app/repositories/alpaca_lora_4bit && \
-    cd /app/repositories/alpaca_lora_4bit && git checkout 2f704b93c961bf202937b10aac9322b092afdce0
-ARG TORCH_CUDA_ARCH_LIST="8.6"
-RUN pip install git+https://github.com/sterlind/GPTQ-for-LLaMa.git@lora_4bit
-ENV EXTRA_LAUNCH_ARGS=""
-CMD ["python3", "/app/server.py", "--monkey-patch"]
-
 FROM base AS default
 RUN echo "DEFAULT" >> /variant.txt
-ENV EXTRA_LAUNCH_ARGS=""
-CMD ["python3", "/app/server.py"]
+ENV CLI_ARGS=""
+CMD python3 /app/app.py ${CLI_ARGS}
