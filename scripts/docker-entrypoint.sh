@@ -3,18 +3,6 @@
 src_dir="default_models"
 dest_dir="models"
 
-src_gptq="default_models/Llama-2-7B-Chat-GPTQ"
-temp_gptq="default_models/temp_Llama-2-7B-Chat-GPTQ"
-dest_gptq="default_models/Llama-2-7b-Chat-GPTQ"
-
-# Rename the directory
-if [ -d "$src_gptq" ]; then
-    mv "$src_gptq" "$temp_gptq"
-    mv "$temp_gptq" "$dest_gptq"
-else
-    echo "Directory $src_gptq does not exist!"
-fi
-
 # Ensure the destination directory exists
 mkdir -p "$dest_dir"
 
