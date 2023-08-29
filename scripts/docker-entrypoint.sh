@@ -3,29 +3,36 @@
 src_dir="default_models"
 dest_dir="models"
 
+src_gptq="default_models/Llama-2-7B-Chat-GPTQ"
+temp_gptq="default_models/temp_Llama-2-7B-Chat-GPTQ"
+dest_gptq="default_models/Llama-2-7b-Chat-GPTQ"
+
+# Rename the directory
+if [ -d "$src_gptq" ]; then
+    mv "$src_gptq" "$temp_gptq"
+    mv "$temp_gptq" "$dest_gptq"
+else
+    echo "Directory $src_gptq does not exist!"
+fi
+
 # Ensure the destination directory exists
 mkdir -p "$dest_dir"
 
-# Use rsync to create the directory structure without copying files
-rsync -a --include '*/' --exclude '*' "$src_dir/" "$dest_dir/"
-
-# Use find to list all items in the source directory
-find "$src_dir" -type f -o -type d | while read -r item; do
+# Recursively create symlinks for files and directories from default_models to models
+find "$src_dir" -mindepth 1 -type f -o -type d | while read -r item; do
     # Create the relative path
     rel_path="${item#$src_dir/}"
+    dest_path="$dest_dir/$rel_path"
+    
+    # Ensure the parent directory of the destination path exists
+    mkdir -p "$(dirname "$dest_path")"
+    
     # Create the symlink in the destination directory
-    ln -s "$PWD/$item" "$dest_dir/$rel_path"
+    ln -s "$PWD/$item" "$dest_path"
 done
 
 
-dir_to_check="models/default_models"
 
-if [ -d "$dir_to_check" ]; then
-    rm -rf "$dir_to_check"
-    echo "Directory $dir_to_check has been removed."
-else
-    echo "Directory $dir_to_check does not exist."
-fi
 
 echo "Soft links created successfully!"
 
