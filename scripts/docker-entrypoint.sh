@@ -1,7 +1,7 @@
 #!/bin/sh
 
-src_dir="default_models"
-dest_dir="models"
+src_dir="/app/default_models"
+dest_dir="/app/models"
 
 # Ensure the destination directory exists
 mkdir -p "$dest_dir"
@@ -19,7 +19,7 @@ find "$src_dir" -mindepth 1 -type f -o -type d | while read -r item; do
     ln -s "$PWD/$item" "$dest_path"
 done
 
-
+ls /app/models
 
 
 echo "Soft links created successfully!"
