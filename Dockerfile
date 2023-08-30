@@ -21,11 +21,10 @@ RUN git clone --branch cpu https://github.com/BobCN2017/llama2-webui /src
 
 # Copy source to app
 RUN cp -ar /src /app
+
 # Install llama2-webui
 RUN --mount=type=cache,target=/root/.cache/pip /venv/bin/pip3 install -r /app/requirements.txt
-
-RUN CMAKE_ARGS="-DLLAMA_CUBLAS=1 -DLLAMA_AVX=OFF -DLLAMA_AVX2=OFF -DLLAMA_F16C=OFF -DLLAMA_FMA=OFF" FORCE_CMAKE=1 pip install --upgrade --force-reinstall llama-cpp-python --no-cache-dir
-
+RUN CMAKE_ARGS="-D AVX=ON -D AVX2=OFF -D AVX512=OFF -D AVX512_VBMI=OFF -D AVX512_VNNI=OFF -D FMA=ON -D NEON=OFF -D ARM_FMA=OFF -D F16C=ON -D FP16_VA=OFF -D WASM_SIMD=OFF -D BLAS=OFF -D SSE3=ON -D VSX=OFF" FORCE_CMAKE=1 pip install --upgrade --force-reinstall llama-cpp-python==0.1.77 --no-cache-dir
 FROM app_base AS base
 # download models
 RUN mkdir /app/default_models
