@@ -1,5 +1,5 @@
 #!/bin/sh
-
+mkdir -p /app/models
 ln -s "/app/default_models/llama-2-7b-chat.ggmlv3.q4_0.bin" "/app/models/llama-2-7b-chat.ggmlv3.q4_0.bin"
 ls /app/models
 
