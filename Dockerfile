@@ -30,13 +30,14 @@ RUN cd /app/repositories/GPTQ-for-LLaMa/ && python3 setup_cuda.py install
 
 
 FROM python:3.10.6-slim as base
-
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    git vim python3-venv
 ENV DEBIAN_FRONTEND=noninteractive PIP_PREFER_BINARY=1
 
 RUN --mount=type=cache,target=/var/cache/apt \
   apt-get update && \
   # we need those
-  apt-get install -y fonts-dejavu-core rsync git jq moreutils aria2 build-essential
+  apt-get install -y git jq moreutils
 
 # Copy app and src
 COPY --from=app_base /app /app
@@ -48,7 +49,8 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # download models
-RUN  python /app/llama2_wrapper/download/__main__.py --repo_id TheBloke/Llama-2-7b-Chat-GPTQ --save_dir /app/default_models 
+RUN mkdir -p /app/default_models/Llama-2-7b-Chat-GPTQ
+COPY /Llama-2-7b-Chat-GPTQ /app/default_models/Llama-2-7b-Chat-GPTQ 
 
 FROM base as base_ready
 RUN rm -rf /root/.cache/pip/*
