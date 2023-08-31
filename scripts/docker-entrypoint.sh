@@ -16,7 +16,7 @@ find "$src_dir" -mindepth 1 -type f -o -type d | while read -r item; do
     mkdir -p "$(dirname "$dest_path")"
     
     # Create the symlink in the destination directory
-    ln -s "$PWD/$item" "$dest_path"
+    ln -s "$item" "$dest_path"
 done
 
 ls /app/models

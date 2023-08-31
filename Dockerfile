@@ -1,7 +1,10 @@
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04 AS env_base
 # Pre-reqs
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    git vim build-essential python3-dev python3-venv python3-pip
+RUN set -ex ; \
+    apt-get update && apt-get install --no-install-recommends -y \
+    git vim build-essential python3-dev python3-venv python3-pip ; \
+    apt-get clean ; \
+    rm -fr /var/lib/apt/lists/*
 # Instantiate venv and pre-activate
 RUN pip3 install virtualenv
 RUN virtualenv /venv
@@ -11,9 +14,9 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN pip3 install --upgrade pip setuptools
 
-RUN pip3 install torch==2.0.1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
+RUN --mount=type=cache,target=/root/.cache/pip pip3 install torch==2.0.1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
 
-FROM env_base AS app_base 
+FROM env_base AS base 
 # Clone llama2-webui
 RUN git clone https://github.com/BobCN2017/llama2-webui /src
 
@@ -27,26 +30,6 @@ RUN git clone https://github.com/oobabooga/GPTQ-for-LLaMa.git -b cuda /app/repos
 # Build and install default GPTQ ('quant_cuda')
 ARG TORCH_CUDA_ARCH_LIST="6.1;7.0;7.5;8.0;8.6+PTX"
 RUN cd /app/repositories/GPTQ-for-LLaMa/ && python3 setup_cuda.py install
-
-
-FROM python:3.10.6-slim as base
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    git vim python3-venv
-ENV DEBIAN_FRONTEND=noninteractive PIP_PREFER_BINARY=1
-
-RUN --mount=type=cache,target=/var/cache/apt \
-  apt-get update && \
-  # we need those
-  apt-get install -y git jq moreutils
-
-# Copy app and src
-COPY --from=app_base /app /app
-COPY --from=app_base /src /src
-# Copy and activate venv
-COPY --from=app_base /venv /venv
-ENV VIRTUAL_ENV=/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # download models
 RUN mkdir -p /app/default_models/Llama-2-7b-Chat-GPTQ
@@ -66,7 +49,6 @@ ARG BUILD_DATE
 ENV BUILD_DATE=$BUILD_DATE
 RUN echo "$BUILD_DATE" > /build_date.txt
 
-RUN echo "change.........."
 # Copy and enable all scripts
 COPY ./scripts /scripts
 RUN chmod +x /scripts/*
