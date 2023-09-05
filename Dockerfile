@@ -1,41 +1,26 @@
-FROM nvidia/cuda:11.8.0-devel-ubuntu22.04 AS env_base
-# Pre-reqs
-RUN set -ex ; \
-    apt-get update && apt-get install --no-install-recommends -y \
-    git vim build-essential python3-dev python3-venv python3-pip ; \
-    apt-get clean ; \
-    rm -fr /var/lib/apt/lists/*
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime AS env_base
+RUN apt-get update && apt-get install -y   git vim && apt-get clean
 # Instantiate venv and pre-activate
-RUN pip3 install virtualenv
-RUN virtualenv /venv
-# Credit, Itamar Turner-Trauring: https://pythonspeed.com/articles/activate-virtualenv-dockerfile/
-ENV VIRTUAL_ENV=/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN pip3 install --upgrade pip setuptools
+RUN pip3 install --no-cache-dir --upgrade pip setuptools
 
-RUN --mount=type=cache,target=/root/.cache/pip pip3 install torch==2.0.1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
 
 FROM env_base AS base 
 # Clone llama2-webui
-RUN git clone https://github.com/BobCN2017/llama2-webui /src
+RUN git clone https://github.com/BobCN2017/llama2-webui /app
 
-# Copy source to app
-RUN cp -ar /src /app
 # Install llama2-webui
-RUN --mount=type=cache,target=/root/.cache/pip pip3 install -r /app/requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip3  install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir bitsandbytes==0.41.1
+RUN pip install https://github.com/PanQiWei/AutoGPTQ/releases/download/v0.4.2/auto_gptq-0.4.2+cu117-cp310-cp310-linux_x86_64.whl
 
-# Clone default GPTQ
-RUN git clone https://github.com/oobabooga/GPTQ-for-LLaMa.git -b cuda /app/repositories/GPTQ-for-LLaMa
-# Build and install default GPTQ ('quant_cuda')
-ARG TORCH_CUDA_ARCH_LIST="6.1;7.0;7.5;8.0;8.6+PTX"
-RUN cd /app/repositories/GPTQ-for-LLaMa/ && python3 setup_cuda.py install
+ENV DEBIAN_FRONTEND=noninteractive PIP_PREFER_BINARY=1
+ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 
 # download models
 RUN mkdir -p /app/default_models/Llama-2-7b-Chat-GPTQ
 COPY /Llama-2-7b-Chat-GPTQ /app/default_models/Llama-2-7b-Chat-GPTQ 
 
-FROM base as base_ready
+FROM app_base as base_ready
 RUN rm -rf /root/.cache/pip/*
 # Finalise app setup
 WORKDIR /app
@@ -52,9 +37,7 @@ RUN echo "$BUILD_DATE" > /build_date.txt
 # Copy and enable all scripts
 COPY ./scripts /scripts
 RUN chmod +x /scripts/*
-RUN cd /src
-RUN git pull
-RUN cp -ar /src /app
+RUN cd /app && git pull
 
 # Run
 ENTRYPOINT ["/scripts/docker-entrypoint.sh"]
