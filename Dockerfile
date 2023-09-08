@@ -11,7 +11,7 @@ RUN git clone https://github.com/BobCN2017/llama2-webui /app
 # Install llama2-webui
 RUN --mount=type=cache,target=/root/.cache/pip pip3  install --no-cache-dir -r /app/requirements.txt
 RUN pip install --no-cache-dir bitsandbytes==0.41.1
-RUN pip install https://github.com/PanQiWei/AutoGPTQ/releases/download/v0.4.2/auto_gptq-0.4.2+cu117-cp310-cp310-linux_x86_64.whl
+RUN pip install -no-cache-dir https://github.com/PanQiWei/AutoGPTQ/releases/download/v0.4.2/auto_gptq-0.4.2+cu117-cp310-cp310-linux_x86_64.whl
 
 ENV DEBIAN_FRONTEND=noninteractive PIP_PREFER_BINARY=1
 ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
@@ -20,7 +20,7 @@ ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
 RUN mkdir -p /app/default_models/Llama-2-7b-Chat-GPTQ
 COPY /Llama-2-7b-Chat-GPTQ /app/default_models/Llama-2-7b-Chat-GPTQ 
 
-FROM app_base as base_ready
+FROM base as base_ready
 RUN rm -rf /root/.cache/pip/*
 # Finalise app setup
 WORKDIR /app
