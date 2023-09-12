@@ -11,7 +11,7 @@ RUN git clone https://github.com/BobCN2017/llama2-webui /app
 # Install llama2-webui
 RUN --mount=type=cache,target=/root/.cache/pip pip3  install --no-cache-dir -r /app/requirements.txt
 RUN pip install --no-cache-dir bitsandbytes==0.41.1
-RUN pip install -no-cache-dir https://github.com/PanQiWei/AutoGPTQ/releases/download/v0.4.2/auto_gptq-0.4.2+cu117-cp310-cp310-linux_x86_64.whl
+RUN pip install https://github.com/PanQiWei/AutoGPTQ/releases/download/v0.4.2/auto_gptq-0.4.2+cu117-cp310-cp310-linux_x86_64.whl
 
 ENV DEBIAN_FRONTEND=noninteractive PIP_PREFER_BINARY=1
 ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
