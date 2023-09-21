@@ -5,9 +5,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 RUN apt-get install -y python3-full python3-venv
 
-# RUN pip3 install virtualenv
-# RUN virtualenv /venv
-# Credit, Itamar Turner-Trauring: https://pythonspeed.com/articles/activate-virtualenv-dockerfile/
 ENV VIRTUAL_ENV=/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
@@ -24,7 +21,7 @@ RUN cp -ar /src /app
 
 # Install llama2-webui
 RUN --mount=type=cache,target=/root/.cache/pip /venv/bin/pip3 install --no-cache-dir -r /app/requirements.txt
-RUN CMAKE_ARGS="-D AVX=ON -D AVX2=OFF -D AVX512=OFF -D AVX512_VBMI=OFF -D AVX512_VNNI=OFF -D FMA=ON -D NEON=OFF -D ARM_FMA=OFF -D F16C=ON -D FP16_VA=OFF -D WASM_SIMD=OFF -D BLAS=OFF -D SSE3=ON -D VSX=OFF" FORCE_CMAKE=1 pip install --upgrade --force-reinstall llama-cpp-python==0.1.77 --no-cache-dir
+RUN CMAKE_ARGS="-D AVX=ON -D AVX2=OFF -D AVX512=OFF -D AVX512_VBMI=OFF -D AVX512_VNNI=OFF -D FMA=ON -D NEON=OFF -D ARM_FMA=OFF -D F16C=ON -D FP16_VA=OFF -D WASM_SIMD=OFF -D BLAS=OFF -D SSE3=ON -D VSX=OFF" FORCE_CMAKE=1 pip install --upgrade --force-reinstall llama-cpp-python==0.2.6 --no-cache-dir
 FROM app_base AS base
 # download models
 RUN mkdir /app/default_models
