@@ -25,7 +25,7 @@ RUN CMAKE_ARGS="-D AVX=ON -D AVX2=OFF -D AVX512=OFF -D AVX512_VBMI=OFF -D AVX512
 FROM app_base AS base
 # download models
 RUN mkdir /app/default_models
-COPY  llama-2-7b-chat.ggmlv3.q4_0.bin /app/default_models
+COPY  llama-2-7b-chat.Q4_0.gguf /app/default_models
 
 FROM base as base_ready
 RUN rm -rf /root/.cache/pip/*
@@ -41,7 +41,6 @@ ARG BUILD_DATE
 ENV BUILD_DATE=$BUILD_DATE
 RUN echo "$BUILD_DATE" > /build_date.txt
 
-RUN echo "change.........."
 # Copy and enable all scripts
 COPY ./scripts /scripts
 RUN chmod +x /scripts/*
